@@ -1100,7 +1100,9 @@ function buildSpellings(w){
     else if (g === 'A' && i < L.length - 1) slots.push(['', 'א']);   // a silent א after an "a" sound (לָשָׁה → לאשה)
   });
   var li = L.length - 1, lg = vGroup(V[li] || '');
-  if ((lg === 'A' || lg === 'E') && !/[אה]/.test(_plain(L[li].charAt(0)))) slots.push(['', 'א', 'ה']);
+  // a practice sound (no meaning): the recognizer writes it as whatever real word sounds the same — תה, תא, טע…
+  if (!w.mean && lg && lg !== 'SH' && !/[אהע]/.test(_plain(L[li].charAt(0)))) slots.push(['', 'א', 'ה', 'ע', 'אה']);
+  else if ((lg === 'A' || lg === 'E') && !/[אה]/.test(_plain(L[li].charAt(0)))) slots.push(['', 'א', 'ה']);
   // all the allowed spellings as one pattern (no long lists, so nothing gets cut off)
   var set = { _re: new RegExp('^' + slots.map(function(o){ return '(?:' + o.join('|') + ')'; }).join('') + '$') };
   (EXTRA_SPELLINGS[w.w] || []).forEach(function(x){ x = _plain(x); if (x) set[x] = 1; });
@@ -1133,6 +1135,11 @@ function _endsRight(n, w){
   if (c === t.letter) return true;
   return !heardOpen && _endClass(c) === t.cls;
 }
+// Latin letters: a recognizer sometimes writes a short sound in English letters ("ta", "bah") — compare by sound
+function latinKey(x){
+  return (x || '').toLowerCase().replace(/[^a-z]/g, '').replace(/kh/g, 'ch').replace(/ts/g, 'tz')
+    .replace(/([aeiou])h(?=[^aeiou]|$)/g, '$1').replace(/(.)\1+/g, '$1');
+}
 function l5Matches(word, guesses){
   if (!word) return false;
   if (!word.spellings) word.spellings = buildSpellings(word);
@@ -1144,6 +1151,7 @@ function l5Matches(word, guesses){
     ws.forEach(function(x, i){ pieces.push(x); if (multi && i + 1 < ws.length) pieces.push(x + ws[i + 1]); });
   });
   for (var i = 0; i < pieces.length; i++) {
+    var lat = latinKey(pieces[i]); if (lat && lat === latinKey(((word.disp || '') + '').split(',')[0] || word.tr)) return true;
     var n = _plain(pieces[i]).replace(/[^א-ת]/g, '');
     if (!n) continue;
     if (n === target) return true;
