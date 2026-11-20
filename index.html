@@ -603,10 +603,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 
 .cs-row2{display:flex;gap:clamp(4px,1.5vw,8px);justify-content:center;width:100%;flex-basis:100%;}
 .hero-row-2{display:flex;gap:clamp(4px,2vw,10px);justify-content:center;width:100%;flex-basis:100%;align-items:flex-end;}
-#cs-fight-btn{padding:clamp(10px,2vh,16px) clamp(24px,5vw,40px) !important;font-size:clamp(12px,3vw,17px) !important;}</style>
+#cs-fight-btn{padding:clamp(10px,2vh,16px) clamp(24px,5vw,40px) !important;font-size:clamp(12px,3vw,17px) !important;}#hear-btn{position:fixed;left:max(12px,env(safe-area-inset-left,0px));bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + 26px);z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:64px;height:64px;border-radius:50%;border:2px solid var(--gold);background:radial-gradient(circle at 35% 30%,#2a2a6a,#0d0d2e);color:var(--cream);font-size:24px;line-height:1;cursor:pointer;box-shadow:0 0 14px rgba(245,200,66,.35),0 4px 0 #050515}
+#hear-btn span{font-family:'Press Start 2P',monospace;font-size:6px;letter-spacing:1px;color:var(--gold)}
+#hear-btn.on{display:flex}
+#hear-btn:active{transform:translateY(2px)}
+#hear-btn.playing{box-shadow:0 0 22px rgba(245,200,66,.8),0 4px 0 #050515}
+</style>
 <script src="https://shearithisrael.github.io/alefwarp/voices.js" onerror="window.WW_VOICES = window.WW_VOICES || null"></script>
 </head>
 <body>
+<button id="hear-btn" type="button" aria-label="Hear the word again">🔊<span>HEAR IT</span></button>
+
 <div class="stars"></div>
 <div class="scanlines"></div>
 <div class="flash" id="flash"></div>
@@ -1584,8 +1591,8 @@ function onCorrect(btn) {
   S.score += xp; addXP(xp);
   document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=true);
   heroSwing();
-  // the voice reads the word correctly; the next word comes once it's done (at least 1.1 s, like before)
-  var wordNow = (S.gameLevel <= 5 && S.word && S.word.w) ? S.word : null;
+  // (the word is read when the question starts — and on the 🔊 button — not again after the answer)
+  var wordNow = null;
   var waitDone = !wordNow, timeDone = false;
   function go(){ if (!waitDone || !timeDone) return; waitDone = false;
     if (S.villainHP <= 0) { endGame(true); return; }
@@ -1824,6 +1831,21 @@ function _attachMicBtn() {
 }
 
 function _doListen(btn, status) { /* handled by _attachMicBtn */ }
+// ── 🔊 HEAR IT: replay the word before answering (Levels 1–4 and 6; not Level 5, where the player reads it) ──
+function updateHearBtn(){
+  var b = document.getElementById('hear-btn'); if (!b) return;
+  var act = document.querySelector('.screen.active'), id = act ? act.id : '';
+  var on = S.gameLevel !== 5 && S.word && S.word.w && (id === 'screen-game' || id === 'screen-dungeon' || id === 'screen-catcher');
+  b.classList.toggle('on', !!on);
+}
+document.getElementById('hear-btn').addEventListener('click', function(e){
+  e.preventDefault(); e.stopPropagation();
+  if (!S.word || S.gameLevel === 5) return;
+  var b = this; b.classList.add('playing');
+  sayWord(S.word, function(){ b.classList.remove('playing'); });
+});
+(function(){ var _ss3 = showScreen; showScreen = function(id){ _ss3(id); updateHearBtn(); }; })();
+(function(){ var _nr = nextRound; nextRound = function(){ _nr.apply(this, arguments); updateHearBtn(); }; })();
 // stop listening whenever the game leaves the battle screen
 (function(){ var _ss = showScreen; showScreen = function(id){ if (id !== 'screen-game') _l5Kill(); _ss(id); }; })();
 // ════════════════════════════════════════
