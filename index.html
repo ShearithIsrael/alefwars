@@ -1345,6 +1345,11 @@ function nextRound() {
     S.word = S.queue[S.round - 1];
     renderWord();
   }
+  // Levels 1–4 and 6: the voice reads the word as the question starts (not in Level 5, where the player reads it)
+  if (S.gameLevel !== 5 && S.word && S.word.w) {
+    var qWord = S.word, qRound = S.round;
+    setTimeout(function(){ if (S.word === qWord && S.round === qRound && typeof sayWord === 'function') sayWord(qWord); }, 600);
+  }
 }
 
 function renderWord() {
