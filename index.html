@@ -1135,11 +1135,8 @@ function _endsRight(n, w){
   if (c === t.letter) return true;
   return !heardOpen && _endClass(c) === t.cls;
 }
-// Latin letters: a recognizer sometimes writes a short sound in English letters ("ta", "bah") — compare by sound
-function latinKey(x){
-  return (x || '').toLowerCase().replace(/[^a-z]/g, '').replace(/kh/g, 'ch').replace(/ts/g, 'tz')
-    .replace(/([aeiou])h(?=[^aeiou]|$)/g, '$1').replace(/(.)\1+/g, '$1');
-}
+// Hebrew only: the recognizer is set to Hebrew (he-IL), and anything it writes in English letters is ignored
+function hebrewOnly(t){ return (t || '').replace(/[A-Za-z][A-Za-z'’\-]*/g, ' ').replace(/\s+/g, ' ').trim(); }
 function l5Matches(word, guesses){
   if (!word) return false;
   if (!word.spellings) word.spellings = buildSpellings(word);
@@ -1151,7 +1148,6 @@ function l5Matches(word, guesses){
     ws.forEach(function(x, i){ pieces.push(x); if (multi && i + 1 < ws.length) pieces.push(x + ws[i + 1]); });
   });
   for (var i = 0; i < pieces.length; i++) {
-    var lat = latinKey(pieces[i]); if (lat && lat === latinKey(((word.disp || '') + '').split(',')[0] || word.tr)) return true;
     var n = _plain(pieces[i]).replace(/[^א-ת]/g, '');
     if (!n) continue;
     if (n === target) return true;
@@ -1761,10 +1757,11 @@ function _l5Listen(){
     if (L5.rec !== r) return;
     var t = '', alts = [];
     for (var i = 0; i < ev.results.length; i++) {
-      t += ev.results[i][0].transcript + ' ';
-      for (var a = 0; a < ev.results[i].length; a++) alts.push(ev.results[i][a].transcript);
+      t += hebrewOnly(ev.results[i][0].transcript) + ' ';
+      for (var a = 0; a < ev.results[i].length; a++) { var ht = hebrewOnly(ev.results[i][a].transcript); if (ht) alts.push(ht); }
     }
     t = t.trim(); L5.fails = 0;
+    if (!t && !alts.length) return;   // only English came back: ignore it
     if (_l5Active() && l5Matches(S.word, [t].concat(alts))) {
       _l5Kill(); clearTimeout(L5.skipT);
       _l5Status('✅ ' + t, 'heard'); S.micStrikes = 0;
